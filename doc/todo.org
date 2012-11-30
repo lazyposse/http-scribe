@@ -1,0 +1,8 @@
+* TODO cloxy - stuff to do [0%]
+** TODO check (and document) that we can access the omdbapi
+** TODO listen (and reply) on a port (hello world)
+** TODO transmit the query to omdbapi
+** TODO check that talking to omdbapi with/out the proxy is the same (from the client perspective)
+** TODO record the request response client->omdbapi
+** TODO instead of contacting the omdbapi, returns the recorded response
+** TODO
