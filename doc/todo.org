@@ -1,8 +1,49 @@
 * TODO cloxy - stuff to do [0%]
-** TODO check (and document) that we can access the omdbapi
+
+#+begin_src sh
+
+normal case
+===========
+
++--------+            +--------+
+|        | ---------> |        |
+| client |            | server |
+|        | <--------- |        |
++--------+            +--------+
+
+recording
+=========
+
++--------+            +--------+           +--------+
+|        | ---------> |        | --------> |        |
+| client |            | cloxy  |           | server |
+|        | <--------- |        | <-------- |        |
++--------+            +--------+           +--------+
+
+
+
+
+
+#+end_src
+
+** IN-PROGRESS check (and document) that we can access the omdbapi
 ** TODO listen (and reply) on a port (hello world)
 ** TODO transmit the query to omdbapi
 ** TODO check that talking to omdbapi with/out the proxy is the same (from the client perspective)
 ** TODO record the request response client->omdbapi
 ** TODO instead of contacting the omdbapi, returns the recorded response
-** TODO
+* TODO notes [%]
+** There is two big topics:
+*** The proxying
+
+How to be a intermediary server between a (several?) client and a
+(several?) server.
+
+How to encode the routing (one proxy, several servers), ...
+
+
+*** The modification of the HTTP streams
+
+This is ortogonal to the proxying.
+
+How to store them, replay them, ...
