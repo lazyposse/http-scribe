@@ -11,7 +11,7 @@
             [clojure.java
              [shell          :as sh]
              [io             :as io]]
-            [clj-http.client :as client]))
+            [clj-http.client :as c]))
 
 ;; utilities ==================================================================
 
@@ -23,15 +23,23 @@
                                           *print-length* print-length]
                                   (pprint s))))
 
-;; http =======================================================================
+;; http cli ===================================================================
 
-(def activiti-base-url "http://ec2-79-125-75-236.eu-west-1.compute.amazonaws.com:8080/activiti-rest/service")
+(def omdb-url "http://www.omdbapi.com/")
 
-(defn activiti-q "Template for all activiti queries"
-  [method path & [opts]]
-  (let [p (merge {:debug       true
-                  :method      method
-                  :url         (str activiti-base-url path)
-                  :basic-auth  ["kermit" "kermit"]}
-                 opts)]
-    (c/request p)))
+(defn omdb-q "Template for all omdb queries"
+  [& [opts]]
+  (c/request (merge {:debug  false
+                     :method :get
+                     :url    omdb-url}
+                    opts)))
+
+(comment
+  "example:"
+  (omdb-q {:query-params {"t" "True Grit", "y" "1969"}})
+
+  "curl equivalent:"
+  (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969")))
+
+;; http server ================================================================
+

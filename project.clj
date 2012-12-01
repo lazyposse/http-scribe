@@ -3,12 +3,9 @@
   :min-lein-version "2.0.0"
   :profiles {:dev
              {:dependencies
-              [[table "0.3.1" :exclusions [com.datomic/datomic]]]}}
+              [[table "0.3.2"]]}}
   :dependencies [[org.clojure/clojure                   "1.4.0" ]
                  [org.clojure/tools.trace               "0.7.3" ]
-                 [clj-http                              "0.4.0" ]
-                 [cheshire                              "4.0.0" ]
+                 [clj-http                              "0.5.8" ]
                  [ring                                  "1.1.6" ]
-                 [ring-basic-authentication             "1.0.1" ]]
-  :repositories {"sonatype"
-                 "http://oss.sonatype.org/content/repositories/releases"})
+                 [ring-basic-authentication             "1.0.1" ]])
