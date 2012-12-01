@@ -1,38 +1,15 @@
-* TODO cloxy - stuff to do [16%]
-
-#+begin_src sh
-
-normal case
-===========
-
-+--------+            +--------+
-|        | ---------> |        |
-| client |            | server |
-|        | <--------- |        |
-+--------+            +--------+
-
-recording
-=========
-
-+--------+            +--------+           +--------+
-|        | ---------> |        | --------> |        |
-| client |            | cloxy  |           | server |
-|        | <--------- |        | <-------- |        |
-+--------+            +--------+           +--------+
-
-
-
-
-
-#+end_src
+* TODO cloxy - stuff to do [28%]
 
 ** DONE check (and document) that we can access the omdbapi
 CLOSED: [2012-12-01 Sat 16:41]
-** IN-PROGRESS listen (and reply) on a port (hello world)
+** DONE listen (and reply) on a port (hello world)
+CLOSED: [2012-12-01 Sat 17:10]
 ** TODO transmit the query to omdbapi
 ** TODO check that talking to omdbapi with/out the proxy is the same (from the client perspective)
 ** TODO record the request response client->omdbapi
 ** TODO instead of contacting the omdbapi, returns the recorded response
+** TODO misc [%]
+*** TODO rename core.clj something better
 * TODO notes [%]
 ** There is two big topics:
 *** The proxying

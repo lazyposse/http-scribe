@@ -4,14 +4,15 @@
             [clojure.repl   :only [doc]]
             [table.core     :only [table]])
   (:require [clojure
-             [string         :as str]
-             [set            :as set]
-             [walk           :as w]
-             [xml            :as xml]]
+             [string            :as str]
+             [set               :as set]
+             [walk              :as w]
+             [xml               :as xml]]
             [clojure.java
-             [shell          :as sh]
-             [io             :as io]]
-            [clj-http.client :as c]))
+             [shell             :as sh]
+             [io                :as io]]
+            [clj-http.client    :as c]
+            [ring.adapter.jetty :as rj]))
 
 ;; utilities ==================================================================
 
@@ -42,4 +43,46 @@
   (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969")))
 
 ;; http server ================================================================
+
+(defn- show
+  [x]
+  (println)
+  (println "show")
+  (println (str "type="(type x)))
+  (pprint x)
+  x)
+
+(defn- response "Takes a body as a string, return the response body (string)"
+  [body-str] (-> body-str
+                 read-string
+                 eval
+                 str))
+
+(defn- response "Takes a body as a string, return the response body (string)"
+  [body-str] (str "hello world !, date=" (java.util.Date.)))
+
+(defn handler [request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (-> request
+                :body
+                slurp
+                response)})
+
+(defonce jetty-server
+  (rj/run-jetty handler {:port 3009
+                         :join? false}))
+
+(defn start   [] (.start jetty-server))
+(defn stop    [] (.stop  jetty-server))
+(defn restart [] (stop) (start))
+
+(comment
+  (start)
+  (stop)
+  (restart))
+
+(comment "Usage:"
+         "In a shell run:
+curl http://localhost:3009/ -X POST -d '(with-out-str (print (range 100)))'")
 
