@@ -52,6 +52,13 @@
   (pprint x)
   x)
 
+(defn wrap-debug "A middleware that debugs the request."
+  [handler]
+  (fn [request]
+    (println "-------")
+    (pprint request)
+    (handler request)))
+
 (defn- response "Takes a body as a string, return the response body (string)"
   [body-str] (-> body-str
                  read-string
@@ -69,9 +76,12 @@
                 slurp
                 response)})
 
+(def app
+  (wrap-debug handler))
+
 (defonce jetty-server
-  (rj/run-jetty handler {:port 3009
-                         :join? false}))
+  (rj/run-jetty app {:port 3009
+                     :join? false}))
 
 (defn start   [] (.start jetty-server))
 (defn stop    [] (.stop  jetty-server))
