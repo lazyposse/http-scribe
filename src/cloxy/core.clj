@@ -35,6 +35,12 @@
                      :url    omdb-url}
                     opts)))
 
+(defn- get-fake-server
+  [] (:body (c/get "http://localhost:9090")))
+
+(defn- get-proxy
+  [] (:body (c/get "http://localhost:3009")))
+
 (comment
   "- omdb example:"
   (omdb-q {:query-params {"t" "True Grit", "y" "1969"}})
@@ -43,7 +49,9 @@
   (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969"))
 
   "- fake server example"
-  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969"))
+  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969")
+
+  (c/get "http://localhost:9090"))
 
 ;; http server ================================================================
 
@@ -60,6 +68,12 @@
   (fn [request]
     (println "-------")
     (pprint  request)
+    (handler request)))
+
+(defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
+  [handler routing]
+  (fn [request]
+    (println "+++++++++++++++++++++++++++++++++++++>> proxy was here ;)")
     (handler request)))
 
 (defn- response "Takes a body as a string, return the response body (string)"
@@ -80,9 +94,15 @@
                 response)})
 
 (def app
-  (wrap-debug handler))
+  (-> handler
+      wrap-debug
+      (wrap-proxy nil)))
 
-(defonce jetty-server
+;; Stop jetty-server, if it exists
+(declare stop)
+(if (resolve 'jetty-server) (stop))
+
+(def jetty-server
   (rj/run-jetty app {:port 3009
                      :join? false}))
 
@@ -96,6 +116,7 @@
   (restart))
 
 (comment "Usage:"
-         "In a shell run:
-curl http://localhost:3009/ -X POST -d '(with-out-str (print (range 100)))'")
+         "In a shell run:"
+
+         (sh/sh "curl" "-s" "http://localhost:3009"))
 
