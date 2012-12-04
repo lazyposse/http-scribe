@@ -70,11 +70,31 @@
     (pprint  request)
     (handler request)))
 
+(defn- for-fake?
+  [request]
+  (re-find #"^/fake-server" (:uri request)))
+
+(def routing
+  {#"^/bobby"       "www.google.com"
+   #"^/fake-server" "localhost:9090"})
+
+
+
+(let [uri (:uri request)] (map (fn [x] [(re-find x uri) x])
+                               (keys routing)))
+
+
+
+(defn- redirect "Take a request and redirect it, if it maches one of the routing table entry"
+  [request routing])
+
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
-    (println "+++++++++++++++++++++++++++++++++++++>> proxy was here ;)")
-    (handler request)))
+    (println "++++++++++++++++++++++++++++++++++++>>> proxy was here ;)")
+    (if (for-fake? request)
+      (c/get "http://localhost:9090")
+      (handler request))))
 
 (defn- response "Takes a body as a string, return the response body (string)"
   [body-str] (-> body-str
@@ -95,7 +115,7 @@
 
 (def app
   (-> handler
-      wrap-debug
+      #_wrap-debug
       (wrap-proxy nil)))
 
 ;; Stop jetty-server, if it exists
