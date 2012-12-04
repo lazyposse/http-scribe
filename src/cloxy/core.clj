@@ -36,11 +36,14 @@
                     opts)))
 
 (comment
-  "example:"
+  "- omdb example:"
   (omdb-q {:query-params {"t" "True Grit", "y" "1969"}})
 
   "curl equivalent:"
-  (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969")))
+  (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969"))
+
+  "- fake server example"
+  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969"))
 
 ;; http server ================================================================
 
@@ -56,7 +59,7 @@
   [handler]
   (fn [request]
     (println "-------")
-    (pprint request)
+    (pprint  request)
     (handler request)))
 
 (defn- response "Takes a body as a string, return the response body (string)"
