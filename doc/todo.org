@@ -1,12 +1,78 @@
-* TODO cloxy - stuff to do [33%]
+* TODO cloxy - stuff to do [30%]
 
 ** DONE check (and document) that we can access the omdbapi
 CLOSED: [2012-12-01 Sat 16:41]
 ** DONE listen (and reply) on a port (hello world)
 CLOSED: [2012-12-01 Sat 17:10]
 ** TODO look for a middleware that would do proxy
-** DONE in the server: get *all* text info from the client
-CLOSED: [2012-12-03 Mon 10:22]
+** DONE compare raw http and ring http
+CLOSED: [2012-12-04 Tue 08:45]
+
+*** ref
+**** canonical query
+***** request
+#+begin_src sh
+curl http://localhost:3009/solr/update?foo=bar -H 'Content-type:text/xml' --data-binary '<commit/>'
+#+end_src
+***** received on the fake server
+#+begin_src sh
+POST /solr/update?foo=bar HTTP/1.1
+User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
+Host: localhost:9090
+Accept: */*
+Content-type:text/xml
+Content-Length: 9
+<commit/>
+#+end_src
+***** received on the ring server
+#+begin_src sh
+{:ssl-client-cert nil            ,
+ :remote-addr     "127.0.0.1"    ,
+ :scheme          :http          ,
+ :request-method  :post          ,
+ :query-string    "foo=bar"      ,
+ :content-type    "text/xml"     ,
+ :uri             "/solr/update" ,
+ :server-name     "localhost"    ,
+ :headers
+ {"user-agent"     "curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18" ,
+  "content-type"   "text/xml"                                                                               ,
+  "content-length" "9"                                                                                      ,
+  "accept"         "*/*"                                                                                    ,
+  "host"           "localhost:3009"}                                                                        ,
+ :content-length     9       ,
+ :server-port        3009    ,
+ :character-encoding "UTF-8" ,
+ :body               #<HttpInput org.eclipse.jetty.server.HttpInput@9d10ab>}
+#+end_src
+***** comp
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+|                         | fake            | ring key                  | ring value                                             |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| method                  | POST            | :request-method           | :post                                                  |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| uri                     | /solr/update    | :uri                      | "/solr/update"                                         |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| req param               | ?foo=bar        | :query-string             | "foo=bar"                                              |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| scheme                  | HTTP/1.1        | :scheme                   | :http                                                  |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| headers User-Agent:     | curl/7.21.3 ... | :headers "user-agent"     | "curl/7.21.3 ... "                                     |
+| headers Host:           | localhost:9090  | :headers "host"           | "localhost:3009"                                       |
+| headers Accept:         | */*             | :headers "accept"         | "*/*"                                                  |
+| headers Content-type:   | text/xml        | :headers "content-type"   | "text/xml"                                             |
+| headers Content-Length: | 9               | :headers "content-length" | "9"                                                    |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+| body                    | <commit/>       | :body                     | #<HttpInput org.eclipse.jetty.server.HttpInput@9d10ab> |
+|-------------------------+-----------------+---------------------------+--------------------------------------------------------|
+
+
+
+
+
+
+
+** IN-PROGRESS in the server: get *all* text info from the client
 
 ** TODO transmit the query to omdbapi
 ** TODO check that talking to omdbapi with/out the proxy is the same (from the client perspective)
@@ -32,3 +98,4 @@ How to encode the routing (one proxy, several servers), ...
 This is ortogonal to the proxying.
 
 How to store them, replay them, ...
+
