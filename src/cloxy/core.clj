@@ -2,7 +2,9 @@
   (:use     [clojure.pprint :only [pprint print-table]]
             [clojure.string :only [split join]]
             [clojure.repl   :only [doc]]
-            [table.core     :only [table]])
+            [table.core     :only [table]]
+            [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
+                                         untrace-ns trace-vars              ]])
   (:require [clojure
              [string            :as str]
              [set               :as set]
@@ -66,19 +68,14 @@
 (defn wrap-debug "A middleware that debugs the request."
   [handler]
   (fn [request]
-    (println "-------")
     (pprint  request)
     (handler request)))
 
-(defn- for-fake?
-  [request]
-  (re-find #"^/fake-server" (:uri request)))
-
 (def routing
   {#"^/bobby"       "www.google.com"
-   #"^/fake-server" "localhost:9090"})
+   #"^/fake-server" "localhost:8080"})
 
-(defn- get-route-entry "Returns the a pair of regexp/replacement, or nil if no route found"
+(defn get-route-entry "Takes a request and a routing map, if the uri of the request match with one of the keys of the routing map, then return the pair uri/replacement-url"
   [request routing]
   (->> routing
        keys
@@ -88,14 +85,21 @@
        second
        (find routing)))
 
-(defn- proxy-req "Takes a request from the client, and return ")
+(defn- client->proxy->url "Take a client request, return the url of the real server"
+  [request match repl]
+  (-> request
+      :uri
+      (str/replace-first match (str (name (:scheme request))
+                                    "://"
+                                    repl))))
 
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
-    (println "++++++++++++++++++++++++++++++++++++>>> proxy was here ;)")
     (if-let [[match repl] (get-route-entry request routing)]
-      (c/get "http://localhost:9090")
+      (c/request (-> request
+                     (assoc     :url (client->proxy->url request match repl))
+                     (update-in [:headers] dissoc "content-length")))
       (handler request))))
 
 (defn- response "Takes a body as a string, return the response body (string)"
@@ -117,8 +121,16 @@
 
 (def app
   (-> handler
-      #_wrap-debug
-      (wrap-proxy nil)))
+      (wrap-proxy routing)))
+
+(comment "Example:
+  - Say you have a server on localhost:8080
+  - Then with the routing (see the routing var above), you can call:"
+         (:body (c/get "http://localhost:3009/fake-server/hello/world?foo=bar"))
+         "
+  - You will call the proxy but, get the response from the real server")
+
+;; http server lifecycle ======================================================
 
 ;; Stop jetty-server, if it exists
 (declare stop)
@@ -141,4 +153,18 @@
          "In a shell run:"
 
          (sh/sh "curl" "-s" "http://localhost:3009"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
