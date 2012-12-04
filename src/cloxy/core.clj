@@ -78,21 +78,23 @@
   {#"^/bobby"       "www.google.com"
    #"^/fake-server" "localhost:9090"})
 
+(defn- get-route-entry "Returns the a pair of regexp/replacement, or nil if no route found"
+  [request routing]
+  (->> routing
+       keys
+       (map (fn [x] [(re-find x (:uri request)) x]))
+       (filter first)
+       first
+       second
+       (find routing)))
 
-
-(let [uri (:uri request)] (map (fn [x] [(re-find x uri) x])
-                               (keys routing)))
-
-
-
-(defn- redirect "Take a request and redirect it, if it maches one of the routing table entry"
-  [request routing])
+(defn- proxy-req "Takes a request from the client, and return ")
 
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
     (println "++++++++++++++++++++++++++++++++++++>>> proxy was here ;)")
-    (if (for-fake? request)
+    (if-let [[match repl] (get-route-entry request routing)]
       (c/get "http://localhost:9090")
       (handler request))))
 

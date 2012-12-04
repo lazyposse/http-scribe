@@ -78,11 +78,12 @@ Content-Length: 9
 
 ** DONE in the server: get *all* text info from the client
 CLOSED: [2012-12-04 Tue 09:16]
-** IN-PROGRESS implement a proxy that if receive /fake-server will send it to localhost:9090/ [50%]
+** IN-PROGRESS implement a proxy that if receive /fake-server will send it to localhost:9090/ [33%]
 *** DONE Find a way to recompile without the "port used" exception
 CLOSED: [2012-12-04 Tue 16:15]
 What I want:
 - define jetty-server (also start it)
+
 
 
 *** TODO actual work
