@@ -38,7 +38,7 @@
                     opts)))
 
 (defn- get-fake-server
-  [] (:body (c/get "http://localhost:9090")))
+  [] (:body (c/get "http://localhost:8080/hi/dude")))
 
 (defn- get-proxy
   [] (:body (c/get "http://localhost:3009")))
@@ -68,12 +68,13 @@
 (defn wrap-debug "A middleware that debugs the request."
   [handler]
   (fn [request]
+    (println "Debugging --------------------------")
     (pprint  request)
     (handler request)))
 
 (def routing
   {#"^/bobby"       "www.google.com"
-   #"^/fake-server" "localhost:8080"})
+   #"^/fake-server" "localhost:8080/foo/bar"})
 
 (defn get-route-entry "Takes a request and a routing map, if the uri of the request match with one of the keys of the routing map, then return the pair uri/replacement-url"
   [request routing]
@@ -85,13 +86,13 @@
        second
        (find routing)))
 
-(defn- client->proxy->url "Take a client request, return the url of the real server"
-  [request match repl]
+(defn client->proxy->url "Take a client request, return the url of the real server"
+  [request match replacement]
   (-> request
       :uri
-      (str/replace-first match (str (name (:scheme request))
-                                    "://"
-                                    repl))))
+      (str/replace-first match replacement)
+      (->> (str (name (:scheme request)) "://"))
+      (str "?" (:query-string request))))
 
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
@@ -121,7 +122,9 @@
 
 (def app
   (-> handler
-      (wrap-proxy routing)))
+      (wrap-proxy routing)
+      wrap-debug
+      ))
 
 (comment "Example:
   - Say you have a server on localhost:8080
@@ -154,7 +157,8 @@
 
          (sh/sh "curl" "-s" "http://localhost:3009"))
 
-
+(comment "in last ressorts"
+         (remove-ns 'cloxy.core))
 
 
 

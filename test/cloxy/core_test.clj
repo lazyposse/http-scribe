@@ -18,3 +18,10 @@
              [shell                :as sh  ]
              [io                   :as io  ]]))
 
+(deftest client->proxy->url-test
+  (is (= "http://localhost:8080/foo/bar/a/b?hello=world"
+         (client->proxy->url {:uri          "/fake-server/a/b"
+                              :scheme       :http
+                              :query-string "hello=world"}
+                             #"^/fake-server"
+                             "localhost:8080/foo/bar"))))
