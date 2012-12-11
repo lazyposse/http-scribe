@@ -68,13 +68,18 @@
 (defn wrap-debug "A middleware that debugs the request."
   [handler]
   (fn [request]
-    (println "Debugging --------------------------")
+    (println "---------- Proxy received request ----------")
     (pprint  request)
     (handler request)))
 
 (def routing
   {#"^/bobby"       "www.google.com"
-   #"^/fake-server" "localhost:8080/foo/bar"})
+   #"^/fake-server" "localhost:8080/foo/bar"
+   #"^/o"           "www.omdbapi.com"})
+
+(comment "Demo of the omdbapi proxied (results must be the same):"
+         (pprint (:body (c/get "http://www.omdbapi.com/?t=True%20Grit&y=1969" {:as :json})))
+         (pprint (:body (c/get "http://localhost:3009/o/?t=True%20Grit&y=1969" {:as :json}))))
 
 (defn get-route-entry "Takes a request and a routing map, if the uri of the request match with one of the keys of the routing map, then return the pair uri/replacement-url"
   [request routing]
@@ -123,7 +128,7 @@
 (def app
   (-> handler
       (wrap-proxy routing)
-      wrap-debug
+      #_wrap-debug
       ))
 
 (comment "Example:
