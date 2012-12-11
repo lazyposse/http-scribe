@@ -9,7 +9,8 @@
              [string            :as str]
              [set               :as set]
              [walk              :as w]
-             [xml               :as xml]]
+             [xml               :as xml]
+             [data              :as data]]
             [clojure.java
              [shell             :as sh]
              [io                :as io]]
