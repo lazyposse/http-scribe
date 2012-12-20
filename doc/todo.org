@@ -1,4 +1,4 @@
-* TODO cloxy - stuff to do [64%]
+* TODO cloxy - stuff to do [60%]
 
 ** DONE check (and document) that we can access the omdbapi
 CLOSED: [2012-12-01 Sat 16:41]
@@ -178,6 +178,14 @@ CLOSED: [2012-12-19 Wed 08:13]
 ** TODO record the request response client->omdbapi [%]
 
 ** TODO instead of contacting the omdbapi, returns the recorded response
+
+** TODO to order [0%]
+
+*** TODO we need to be able to test locally, so we need a predictable server locally.
+
+We could try the apache console maven archetype
+
+*** TODO need to test with an actual payload
 ** TODO misc [0%]
 *** TODO rename core.clj something better
 *** TODO project renaming?
