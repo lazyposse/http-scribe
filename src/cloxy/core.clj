@@ -133,7 +133,9 @@
       ))
 
 (comment "Example:
-  - Say you have a server on localhost:8080
+  - Say you have a server on localhost:8080"
+         (:body (c/get "http://localhost:8080/hello/world?foo=bar"))
+         "
   - Then with the routing (see the routing var above), you can call:"
          (:body (c/get "http://localhost:3009/fake-server/hello/world?foo=bar"))
          "
@@ -164,7 +166,7 @@
          (sh/sh "curl" "-s" "http://localhost:3009"))
 
 (comment "in last ressorts"
-         (remove-ns 'cloxy.core))
+         (remove-ns 'cloxy.core))
 
 
 
