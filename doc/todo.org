@@ -181,10 +181,11 @@ CLOSED: [2012-12-19 Wed 08:13]
 We could try the apache console maven archetype
 
 **** TODO need to test with an actual payload
-** IN-PROGRESS recording [50%]
+** IN-PROGRESS recording [100%]
 *** DONE create a middleware that records the interactions and dump it in an atom
 CLOSED: [2013-01-04 Fri 09:41]
-*** TODO the pb of the inputstream
+*** DONE fn to "de-serialize" the input stream from the request
+CLOSED: [2013-01-04 Fri 18:06]
 ** TODO mode replay client[%]
 ** TODO mode non reg (replay server)[%]
 ** TODO admin rest api [0%]

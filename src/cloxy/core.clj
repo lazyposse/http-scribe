@@ -1,10 +1,11 @@
 (ns cloxy.core
-  (:use     [clojure.pprint :only [pprint print-table]]
-            [clojure.string :only [split join]]
-            [clojure.repl   :only [doc]]
-            [table.core     :only [table]]
-            [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
-                                         untrace-ns trace-vars              ]])
+  (:use [clojure.java.javadoc :only [javadoc]]
+        [clojure.pprint       :only [pprint print-table]]
+        [clojure.string       :only [split join]]
+        [clojure.repl         :only [doc]]
+        [table.core           :only [table]]
+        [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
+                                     untrace-ns trace-vars              ]])
   (:require [clojure
              [string            :as str]
              [set               :as set]
@@ -101,6 +102,7 @@
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
+    (println "---> wrap-proxy")
     (if-let [[match repl] (get-route-entry request routing)]
       (c/request (-> request
                      (assoc     :url (client->proxy->url request match repl))
@@ -112,12 +114,19 @@
 (defn wrap-record "A middleware that records the http request / response into an atom"
   [handler]
   (fn [request]
-    (println "was hrere ----------------------------")
+    (println "---> wrap-record")
     (let [resp (handler request)]
       (swap! wrap-record-state
              conj
-             {:request request :response response})
+             {:request  request
+              :response resp})
       resp)))
+
+(defn- wrap-stringify-req-input-stream "A middleware that turn the input stream of the request body into a string"
+  [handler]
+  (fn [request]
+    (println "---> wrap-stringify-req-input-stream")
+    (handler (update-in request [:body] slurp))))
 
 (defn- response "Takes a body as a string, return the response body (string)"
   [body-str] (-> body-str
@@ -140,7 +149,7 @@
   (-> handler
       (wrap-proxy routing)
       wrap-record
-      #_wrap-debug
+      wrap-stringify-req-input-stream
       ))
 
 (comment "Example:
