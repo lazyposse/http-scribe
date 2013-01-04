@@ -52,9 +52,7 @@
   (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969"))
 
   "- fake server example"
-  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969")
-
-  (c/get "http://localhost:9090"))
+  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969"))
 
 ;; http server ================================================================
 
@@ -109,6 +107,18 @@
                      (update-in [:headers] dissoc "content-length")))
       (handler request))))
 
+(def wrap-record-state (atom []))
+
+(defn wrap-record "A middleware that records the http request / response into an atom"
+  [handler]
+  (fn [request]
+    (println "was hrere ----------------------------")
+    (let [resp (handler request)]
+      (swap! wrap-record-state
+             conj
+             {:request request :response response})
+      resp)))
+
 (defn- response "Takes a body as a string, return the response body (string)"
   [body-str] (-> body-str
                  read-string
@@ -129,6 +139,7 @@
 (def app
   (-> handler
       (wrap-proxy routing)
+      wrap-record
       #_wrap-debug
       ))
 
@@ -140,6 +151,14 @@
          (:body (c/get "http://localhost:3009/fake-server/hello/world?foo=bar"))
          "
   - You will call the proxy but, get the response from the real server")
+
+(comment "Example with a body"
+         "  - direct conn:"
+         (c/put "http://localhost:8080/hello/world?foo=bar"
+                {:body "this is the body"})
+         "  - proxy:"
+         (c/put "http://localhost:3009/fake-server/hello/world?foo=bar"
+                {:body "this is the body"}))
 
 ;; http server lifecycle ======================================================
 
@@ -167,6 +186,26 @@
 
 (comment "in last ressorts"
          (remove-ns 'cloxy.core))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
