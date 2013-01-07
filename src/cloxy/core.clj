@@ -169,6 +169,16 @@
          (c/put "http://localhost:3009/fake-server/hello/world?foo=bar"
                 {:body "this is the body"}))
 
+;; app lifecycle ==============================================================
+
+(def #^{:doc "Home directory of the application"
+        :private true} home-dir (str (System/getProperty "user.home") ".cloxy"))
+
+(defn create-home-dir "Create the home dir of the app"
+  [] (.mkdir (io/file home-dir)))
+
+(create-home-dir)
+
 ;; http server lifecycle ======================================================
 
 ;; Stop jetty-server, if it exists
@@ -195,36 +205,3 @@
 
 (comment "in last ressorts"
          (remove-ns 'cloxy.core))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
