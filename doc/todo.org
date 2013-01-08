@@ -191,7 +191,11 @@ CLOSED: [2013-01-07 Mon 14:01]
 *** TODO dump the recording to a file
 ** TODO mode replay client [%]
 ** TODO mode non reg (replay server) [%]
-** TODO admin rest api [0%]
+** IN-PROGRESS admin rest api [0%]
+*** IN-PROGRESS transport [50%]
+**** DONE copy the web-hook ns
+CLOSED: [2013-01-08 Tue 13:05]
+**** TODO implement the curl scripts to do it
 *** TODO routing [0%]
 **** TODO add
 **** TODO rm
