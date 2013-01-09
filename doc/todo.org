@@ -1,24 +1,25 @@
 * IN-PROGRESS cloxy - stuff to do [0%]
-** IN-PROGRESS routing [64%]
-*** DONE check (and document) that we can access the omdbapi
+** IN-PROGRESS must [0%]
+*** IN-PROGRESS routing [90%]
+**** DONE check (and document) that we can access the omdbapi
 CLOSED: [2012-12-01 Sat 16:41]
-*** DONE listen (and reply) on a port (hello world)
+**** DONE listen (and reply) on a port (hello world)
 CLOSED: [2012-12-01 Sat 17:10]
-*** FAIL look for a middleware that would do proxy
+**** FAIL look for a middleware that would do proxy
 CLOSED: [2012-12-04 Tue 09:17]
 
 nothing found
 
-*** DONE compare raw http and ring http
+**** DONE compare raw http and ring http
 CLOSED: [2012-12-04 Tue 08:45]
 
-**** ref
-***** canonical query
-****** request
+***** ref
+****** canonical query
+******* request
 #+begin_src sh
 curl http://localhost:3009/solr/update?foo=bar -H 'Content-type:text/xml' --data-binary '<commit/>'
 #+end_src
-****** received on the fake server
+******* received on the fake server
 #+begin_src sh
 POST /solr/update?foo=bar HTTP/1.1
 User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
@@ -28,7 +29,7 @@ Content-type:text/xml
 Content-Length: 9
 <commit/>
 #+end_src
-****** received on the ring server
+******* received on the ring server
 #+begin_src sh
 {:ssl-client-cert nil            ,
  :remote-addr     "127.0.0.1"    ,
@@ -49,7 +50,7 @@ Content-Length: 9
  :character-encoding "UTF-8" ,
  :body               #<HttpInput org.eclipse.jetty.server.HttpInput@9d10ab>}
 #+end_src
-****** comp
+******* comp
 |-------------------------+-----------------+---------------------------+--------------------------------------------------------|
 |                         | fake            | ring key                  | ring value                                             |
 |-------------------------+-----------------+---------------------------+--------------------------------------------------------|
@@ -71,28 +72,27 @@ Content-Length: 9
 |-------------------------+-----------------+---------------------------+--------------------------------------------------------|
 
 
-
-*** DONE in the server: get *all* text info from the client
+**** DONE in the server: get *all* text info from the client
 CLOSED: [2012-12-04 Tue 09:16]
-*** DONE implement a proxy that if receive /fake-server will send it to localhost:9090/ [100%]
+**** DONE implement a proxy that if receive /fake-server will send it to localhost:9090/ [100%]
 CLOSED: [2012-12-04 Tue 21:08]
-**** DONE Find a way to recompile without the "port used" exception
+***** DONE Find a way to recompile without the "port used" exception
 CLOSED: [2012-12-04 Tue 16:15]
 What I want:
 - define jetty-server (also start it)
 
 
 
-**** DONE actual work
+***** DONE actual work
 CLOSED: [2012-12-04 Tue 21:08]
-*** DONE bugfix: the proxy loses the req params
+**** DONE bugfix: the proxy loses the req params
 CLOSED: [2012-12-10 Mon 07:57]
-*** DONE transmit the query to omdbapi
+**** DONE transmit the query to omdbapi
 CLOSED: [2012-12-11 Tue 09:15]
-*** DONE check that talking to omdbapi with/out the proxy is the same (from the client perspective)
+**** DONE check that talking to omdbapi with/out the proxy is the same (from the client perspective)
 CLOSED: [2012-12-19 Wed 08:13]
 
-**** original req
+***** original req
 #+begin_src clj
 {:trace-redirects ["http://www.omdbapi.com/?t=True%20Grit&y=1969"],
  :request-time 246,
@@ -129,7 +129,7 @@ CLOSED: [2012-12-19 Wed 08:13]
   :Runtime "2 h 8 min"}}
 #+end_src
 
-**** proxied req
+***** proxied req
 #+begin_src clojure
 {:trace-redirects ["http://localhost:3009/o/?t=True%20Grit&y=1969"],
  :request-time 292,
@@ -166,46 +166,46 @@ CLOSED: [2012-12-19 Wed 08:13]
   :Title "True Grit",
   :Runtime "2 h 8 min"}}
 #+end_src
-*** TODO an http error code shouldn't raise an exception
-*** TODO test the omdbapi but with an out of process tool (curl) [0%]
-**** TODO write a test with curl that compare the proxy response and the omdbapi one
+**** IN-PROGRESS An HTTP response with an error code should transit as any other response
+*** TODO recording [75%]
+**** DONE create a middleware that records the interactions and dump it in an atom
+CLOSED: [2013-01-04 Fri 09:41]
+**** DONE fn to "de-serialize" the input stream from the request
+CLOSED: [2013-01-04 Fri 18:06]
+**** DONE create the "home" directory of the app if it doesn't exists
+CLOSED: [2013-01-07 Mon 14:01]
+**** TODO dump the recording to a file
 
-*** TODO record the request response client->omdbapi [%]
+*** TODO mode replay client [%]
 
-*** TODO instead of contacting the omdbapi, returns the recorded response
+** TODO should [0%]
+*** TODO mode non reg (replay server) [%]
+*** TODO admin rest api [0%]
+**** IN-PROGRESS transport [50%]
+***** DONE copy the web-hook ns
+CLOSED: [2013-01-08 Tue 13:05]
+***** TODO implement the curl scripts to do it
+**** IN-PROGRESS routing [0%]
+***** IN-PROGRESS list
+****** IN-PROGRESS move the routing table + the recording to an atom
+****** TODO implem the listing
+***** TODO add
+***** TODO rm
 
-*** TODO to order [0%]
+*** TODO misc [0%]
+**** TODO rename core.clj something better
+**** TODO project renaming?
+- I guess cloxy is too "clojure connoted"
+- yaxy (yack + proxy) [%] [%]
 
-**** TODO we need to be able to test locally, so we need a predictable server locally.
+**** TODO http server to get [0%]
+
+***** TODO we need to be able to test locally, so we need a predictable server locally.
 
 We could try the apache console maven archetype
 
-**** TODO need to test with an actual payload
-** IN-PROGRESS recording [75%]
-*** DONE create a middleware that records the interactions and dump it in an atom
-CLOSED: [2013-01-04 Fri 09:41]
-*** DONE fn to "de-serialize" the input stream from the request
-CLOSED: [2013-01-04 Fri 18:06]
-*** DONE create the "home" directory of the app if it doesn't exists
-CLOSED: [2013-01-07 Mon 14:01]
-*** TODO dump the recording to a file
-** TODO mode replay client [%]
-** TODO mode non reg (replay server) [%]
-** IN-PROGRESS admin rest api [0%]
-*** IN-PROGRESS transport [50%]
-**** DONE copy the web-hook ns
-CLOSED: [2013-01-08 Tue 13:05]
-**** TODO implement the curl scripts to do it
-*** TODO routing [0%]
-**** TODO add
-**** TODO rm
-**** TODO update
+***** TODO need to test with an actual payload
 
-** TODO misc [0%]
-*** TODO rename core.clj something better
-*** TODO project renaming?
-- I guess cloxy is too "clojure connoted"
-- yaxy (yack + proxy) [%] [%]
 
 * TODO notes [%]
 ** There is two big topics:
@@ -231,6 +231,11 @@ How to store them, replay them, ...
 **** run the proxy
 
 ? in which mode the proxy is when started ?
+
+for me there should be a default mode
+or you could pass option when launching
+or you could use a startup file to decide
+or you could use the rest api to switch to the wanted mode
 
 **** proxy-cmd: configure the routing table
 
