@@ -1,15 +1,17 @@
 (ns cloxy.core
-  (:use     [clojure.pprint :only [pprint print-table]]
-            [clojure.string :only [split join]]
-            [clojure.repl   :only [doc]]
-            [table.core     :only [table]]
-            [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
-                                         untrace-ns trace-vars              ]])
+  (:use [clojure.java.javadoc :only [javadoc]]
+        [clojure.pprint       :only [pprint print-table]]
+        [clojure.string       :only [split join]]
+        [clojure.repl         :only [doc]]
+        [table.core           :only [table]]
+        [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
+                                     untrace-ns trace-vars              ]])
   (:require [clojure
              [string            :as str]
              [set               :as set]
              [walk              :as w]
-             [xml               :as xml]]
+             [xml               :as xml]
+             [data              :as data]]
             [clojure.java
              [shell             :as sh]
              [io                :as io]]
@@ -51,9 +53,7 @@
   (sh/sh "curl" "-s" (str omdb-url "?t=True%20Grit&y=1969"))
 
   "- fake server example"
-  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969")
-
-  (c/get "http://localhost:9090"))
+  (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969"))
 
 ;; http server ================================================================
 
@@ -68,13 +68,18 @@
 (defn wrap-debug "A middleware that debugs the request."
   [handler]
   (fn [request]
-    (println "Debugging --------------------------")
+    (println "---------- Proxy received request ----------")
     (pprint  request)
     (handler request)))
 
 (def routing
   {#"^/bobby"       "www.google.com"
-   #"^/fake-server" "localhost:8080/foo/bar"})
+   #"^/fake-server" "localhost:8080/foo/bar"
+   #"^/o"           "www.omdbapi.com"})
+
+(comment "Demo of the omdbapi proxied (results must be the same):"
+         (pprint (:body (c/get "http://www.omdbapi.com/?t=True%20Grit&y=1969"  {:as :json})))
+         (pprint (:body (c/get "http://localhost:3009/o/?t=True%20Grit&y=1969" {:as :json}))))
 
 (defn get-route-entry "Takes a request and a routing map, if the uri of the request match with one of the keys of the routing map, then return the pair uri/replacement-url"
   [request routing]
@@ -97,11 +102,31 @@
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
+    (println "---> wrap-proxy")
     (if-let [[match repl] (get-route-entry request routing)]
       (c/request (-> request
                      (assoc     :url (client->proxy->url request match repl))
                      (update-in [:headers] dissoc "content-length")))
       (handler request))))
+
+(def wrap-record-state (atom []))
+
+(defn wrap-record "A middleware that records the http request / response into an atom"
+  [handler]
+  (fn [request]
+    (println "---> wrap-record")
+    (let [resp (handler request)]
+      (swap! wrap-record-state
+             conj
+             {:request  request
+              :response resp})
+      resp)))
+
+(defn- wrap-stringify-req-input-stream "A middleware that turn the input stream of the request body into a string"
+  [handler]
+  (fn [request]
+    (println "---> wrap-stringify-req-input-stream")
+    (handler (update-in request [:body] slurp))))
 
 (defn- response "Takes a body as a string, return the response body (string)"
   [body-str] (-> body-str
@@ -123,15 +148,36 @@
 (def app
   (-> handler
       (wrap-proxy routing)
-      wrap-debug
+      wrap-record
+      wrap-stringify-req-input-stream
       ))
 
 (comment "Example:
-  - Say you have a server on localhost:8080
+  - Say you have a server on localhost:8080"
+         (:body (c/get "http://localhost:8080/hello/world?foo=bar"))
+         "
   - Then with the routing (see the routing var above), you can call:"
          (:body (c/get "http://localhost:3009/fake-server/hello/world?foo=bar"))
          "
   - You will call the proxy but, get the response from the real server")
+
+(comment "Example with a body"
+         "  - direct conn:"
+         (c/put "http://localhost:8080/hello/world?foo=bar"
+                {:body "this is the body"})
+         "  - proxy:"
+         (c/put "http://localhost:3009/fake-server/hello/world?foo=bar"
+                {:body "this is the body"}))
+
+;; app lifecycle ==============================================================
+
+(def #^{:doc "Home directory of the application"
+        :private true} home-dir (str (System/getProperty "user.home") ".cloxy"))
+
+(defn create-home-dir "Create the home dir of the app"
+  [] (.mkdir (io/file home-dir)))
+
+(create-home-dir)
 
 ;; http server lifecycle ======================================================
 
@@ -158,17 +204,4 @@
          (sh/sh "curl" "-s" "http://localhost:3009"))
 
 (comment "in last ressorts"
-         (remove-ns 'cloxy.core))
-
-
-
-
-
-
-
-
-
-
-
-
-
+         (remove-ns 'cloxy.core))

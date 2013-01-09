@@ -25,3 +25,7 @@
                               :query-string "hello=world"}
                              #"^/fake-server"
                              "localhost:8080/foo/bar"))))
+
+(comment (deftest itest-proxy-and-real-must-be-same
+           (is (= (c/get "http://www.omdbapi.com/?t=True%20Grit&y=1969"  {:as :json})
+                  (c/get "http://localhost:3009/o/?t=True%20Grit&y=1969" {:as :json})))))
