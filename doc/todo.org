@@ -169,7 +169,7 @@ CLOSED: [2012-12-19 Wed 08:13]
 **** IN-PROGRESS An HTTP response with an error code should transit as any other response [50%]
 ***** DONE setup the fake server so that it return a HTTP error code
 CLOSED: [2013-01-09 Wed 13:47]
-***** TODO handle this in the code
+***** IN-PROGRESS handle this in the code
 *** TODO recording [75%]
 **** DONE create a middleware that records the interactions and dump it in an atom
 CLOSED: [2013-01-04 Fri 09:41]
