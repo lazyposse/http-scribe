@@ -19,6 +19,18 @@
             [ring.adapter.jetty :as rj]
             [clojure.test       :as t]))
 
+;; trace conf =================================================================
+
+(defn tracer "Redefine clojure.tools.trace/tracer to print at most 80 characters.
+If we don't do that and the input/outputs are big, its very difficult to see the traces."
+  [name value]
+  (let [s (str "TRACE" (when name (str " " name)) ": " value)]
+   (println (subs s
+                  0 (min 80 (count s))))))
+
+(alter-var-root #'clojure.tools.trace/tracer
+                (constantly tracer))
+
 ;; app state ==================================================================
 
 (def #^{:private true, :doc "Holds the state of the application"}
