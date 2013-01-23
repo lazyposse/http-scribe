@@ -2,7 +2,7 @@
   (:use [clojure.java.javadoc :only [javadoc]]
         [clojure.pprint       :only [pprint print-table]]
         [clojure.string       :only [split join]]
-        [clojure.repl         :only [doc]]
+        [clojure.repl         :only [doc dir]]
         [table.core           :only [table]]
         [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns
                                      untrace-ns trace-vars              ]])
@@ -17,33 +17,33 @@
              [io                :as io]]
             [clj-http.client    :as c]
             [ring.adapter.jetty :as rj]
-            [clojure.test       :as t]))
+            [clojure.test       :as t]
+            [cloxy.util         :as u]
+            [gui-diff.core      :as gd]))
 
 ;; app state ==================================================================
 
+(def #^{:private true, :doc "The app state at an intial status"}
+  app-state-default
+  {:conf {:record {:request {:ignore [:ssl-client-cert
+                                      :remote-addr
+                                      :server-name
+                                      :server-port
+                                      {:headers ["host"]}]}
+                   :response {:ignore [:trace-redirects
+                                       :request-time
+                                       {:headers ["date"
+                                                  "server"]}]}}}
+   :mode :replay
+   :replay {:expected []
+            :actual   []
+            :last-ok? false}})
+
 (def #^{:private true, :doc "Holds the state of the application"}
   app-state
-  (atom {:conf {:record {:request {:ignore [:ssl-client-cert
-                                            :remote-addr
-                                            :server-name
-                                            :server-port
-                                            {:headers ["host"]}]}
-                         :response {:ignore [:trace-redirects
-                                             :request-time
-                                             {:headers ["date"
-                                                        "server"]}]}}}
-         :mode :replay
-         :replay {:scenario {:loaded  []
-                             :current []}
-                  :last-request nil}}))
+  (atom app-state-default))
 
-(add-watch app-state nil (fn [key, the-atom, old-state, new-state]
-                           (println "---------- <app-state-changed> ----------")
-                           #_(println "    new state:")
-                           (pprint (map (fn [rr] (get-in rr [:request :uri])) (get-in new-state [:replay :scenario :current])))
-                           (println "---------- </app-state-changed> ---------")))
-
-;; java api ===================================================================
+;; replay java api ============================================================
 
 (defn- named-resource->scenario "Takes a named resource string, return the req/resp datastructure"
   [named-resource-str]
@@ -56,39 +56,103 @@
   [named-resource-str]
   (let [scenario (named-resource->scenario named-resource-str)]
     (swap! app-state (fn [appstate] (-> appstate
-                                       (assoc-in [:replay :scenario :loaded ] scenario)
-                                       (assoc-in [:replay :scenario :current] scenario))))))
+                                       (assoc-in [:replay :expected] scenario)
+                                       (assoc-in [:replay :actual  ] [])
+                                       (assoc-in [:replay :last-ok?] false))))))
 
 (defn- lines "Takes objects, join it with linebreaks"
   [& l] (str/join \newline l))
 
-(defn scenario-errors "Return a map of errors in the previously executed scenario. Empty map if successful"
+(defn- state-get-replay-count "Returns the count of request for either :expected or :actual"
+  [kind]
+  (->> @app-state
+       :replay
+       kind
+       count))
+
+(defn- state-get-expected-req "In case of an unexpected request: returns the expected one"
   []
-  (let [scenario                 (get-in @app-state [:replay :scenario])
+  (-> @app-state
+      :replay
+      :expected
+      (get (dec (state-get-replay-count :actual)))
+      :request))
+
+(defn- state-get-last-received-req "Return the last received request"
+  []
+  (-> @app-state
+      :replay
+      :actual
+      last))
+
+(defn- scenario-status "Return the status of a scenario: :ok, :ko-unexpected-request, :ko-not-enough-requests"
+  [appstate] ;; TODO no need to pass the appstate
+  (let [replay          (:replay appstate) ;; TODO rm unecessary lets
+        expected-count  (state-get-replay-count :expected)
+        actual          (:actual replay)
+        actual-count    (state-get-replay-count :actual)]
+    (cond  (empty? actual)                    :ko-not-enough-requests
+           (not (:last-ok? replay))           :ko-unexpected-request
+           (not= expected-count actual-count) :ko-not-enough-requests
+           :else                              :ok)))
+
+;; TODO to rework
+(defn- scenario-errors-human-msg "Takes an app-state map and returns a human-formatted string message"
+  [appstate]
+  (let [scenario                 (get-in appstate [:replay :scenario])
         scenario-total-steps     (count (:loaded  scenario))
         scenario-current         (:current scenario)
         scenario-remaining-steps (count scenario-current)
         scenario-executed-steps  (- scenario-total-steps scenario-remaining-steps)]
-    (if (zero? scenario-remaining-steps)
+    (format (lines "                                          "
+                   "     ***********************              "
+                   "     *** Scenario failed ***              "
+                   "     ***********************              "
+                   "                                          "
+                   "Nb of correct request/response: %s of %s  "
+                   "                                          "
+                   "An error was found at step       : %s     "
+                   "                                          "
+                   "      Expected request:                   "
+                   "      =================                   "
+                   "                                          "
+                   "%s                                        "
+                   "                                          "
+                   "      But was         :                   "
+                   "      =================                   "
+                   "                                          "
+                   "%s                                        ")
+            scenario-executed-steps
+            (inc scenario-executed-steps)
+            (with-out-str (pprint (get-in scenario   [:current 0 :request])))
+            (with-out-str (pprint (get-in appstate [:replay :last-request]))))))
+
+(defn- scenario-error-get-ko-msg "Return a human readbale message in case of failure"
+  [status]
+  (let [expected-count (state-get-replay-count :expected)
+        actual-count   (state-get-replay-count :actual)]
+    (cond
+      (zero? actual-count)               (format "Expected %s request(s), but none received so far   " expected-count)
+      (= status :ko-not-enough-requests) (format "Expected %s request(s), but received only %s so far" expected-count actual-count)
+      (= status :ko-unexpected-request)  (format (lines "Problem with received request number %s     "
+                                                        "                                            "
+                                                        "Expected:                                   "
+                                                        "                                            "
+                                                        "%s                                          "
+                                                        "But was:                                    "
+                                                        "                                            "
+                                                        "%s                                          "
+                                                        "                                            ")
+                                                 actual-count
+                                                 (u/pprint-to-str (state-get-expected-req))
+                                                 (u/pprint-to-str (state-get-last-received-req))))))
+
+(defn scenario-errors "Return a map of errors in the previously executed scenario. Empty map if successful"
+  []
+  (let [status (scenario-status @app-state)]
+    (if (= status :ok)
       {}
-      (format (lines "Nb of req/resp executed correctly: %s"
-                     "An error was found at step       : %s"
-                     "    * Expected request           : %s"
-                     "    * But was                    : %s")
-              scenario-executed-steps
-              (inc scenario-executed-steps)
-              (get-in scenario   [:current 0 :request])
-              (get-in @app-state [:replay :current])))))
-
-;; utilities ==================================================================
-
-(defn prns
-  "Print a preview of a datastructure"
-  ([                         s] (prns 2 s))
-  ([depth                    s] (prns depth depth s))
-  ([print-level print-length s] (binding [*print-level*  print-level
-                                          *print-length* print-length]
-                                  (pprint s))))
+      {"errorMessage" (scenario-error-get-ko-msg status)})))
 
 ;; http cli ===================================================================
 
@@ -117,7 +181,7 @@
   "- fake server example"
   (sh/sh "curl" "-s" "http://localhost:9090?t=True%20Grit&y=1969"))
 
-;; http server ================================================================
+;; http server: utils =========================================================
 
 (defn- show
   [x]
@@ -133,6 +197,13 @@
     (println "---------- Proxy received request ----------")
     (pprint  request)
     (handler request)))
+
+(defn- wrap-stringify-req-input-stream "A middleware that turn the input stream of the request body into a string"
+  [handler]
+  (fn [request]
+    (handler (update-in request [:body] slurp))))
+
+;; http server: recording =====================================================
 
 (def routing
   {#"^/bobby"       "www.google.com"
@@ -172,7 +243,6 @@
 (defn wrap-proxy "A middleware that will relay the request to another server, depending on its routing table"
   [handler routing]
   (fn [request]
-    (println "---> wrap-proxy")
     (if-let [[match repl] (get-route-entry request routing)]
       (proxy-request (-> request
                          (assoc     :url (client->proxy->url request match repl))
@@ -211,48 +281,20 @@
 (defn wrap-record "A middleware that records the http request / response into an atom"
   [handler]
   (fn [request]
-    (println "---> wrap-record")
     (let [resp (handler request)]
-      (do (println "about to conj into the record atom:")
-          (pprint {:request  request, :response resp})
-          (record-req-resp request resp))
+      (record-req-resp request resp)
       resp)))
 
-(defn- wrap-stringify-req-input-stream "A middleware that turn the input stream of the request body into a string"
-  [handler]
-  (fn [request]
-    (println "---> wrap-stringify-req-input-stream")
-    (handler (update-in request [:body] slurp))))
+;; http server: replay ========================================================
 
-(defn- response "Takes a body as a string, return the response body (string)"
-  [body-str] (-> body-str
-                 read-string
-                 eval
-                 str))
-
-(defn- response "Takes a body as a string, return the response body (string)"
-  [body-str] (str "hello world !, date=" (java.util.Date.)))
-
-(defn handler [request]
-  {:status  200
-   :headers {"Content-Type" "text/plain"}
-   :body    (-> request
-                :body
-                slurp
-                response)})
-
-(defn- mode-get "Returns the mode of the app, currently :record or :replay"
-  [] (->> @app-state
-          :mode))
-
-(defmulti encode-body "Takes a body as a datastructure, return a string version of it"
+(defmulti replay-encode-body "Takes a body as a datastructure, return a string version of it"
   :type)
 
-(defmethod encode-body :json
+(defmethod replay-encode-body :json
   [{content :content}] (c/json-encode content))
 
-(defn- admin-req? "Predicate to check if a request is an administrative one"
-  [request] (.startsWith (:uri "/admin/")))
+(defmethod replay-encode-body :default
+  [x] x)
 
 (defn- submap? "Predicate to check if m2 is a submap of m1"
   [m1 m2]
@@ -288,55 +330,52 @@
          {:a 1 :headers {:h1 1}} {:a 1 :headers {:h1 1 :h2 2}} false))
 
 (defn- req-body-encode "takes a req and encode its body if necessary"
-  [req] (if (:body req)
-          (update-in req [:body] encode-body)
-          req))
+  [req]
+  (if (:body req)
+    (update-in req [:body] replay-encode-body)
+    req))
 
-(defn- replay-req-match-scenario? "Predicate to check if the request matches the current running scenario"
-  [request curr-scenario]
-  (->> curr-scenario
-       first
-       :request
-       req-body-encode
-       (replay-req-match? request)))
+(defn- replay-store-incoming-req! "Store the incoming request in the app state"
+  [req]
+  (swap! app-state update-in [:replay :actual] conj req))
 
-(defn- vec-rest "takes a vector, returns a vector without the first element"
-  [v]
-  (if (seq v)
-    (subvec v 1)
-    v))
+(defn- replay-get-resp "Takes an incoming request, returns the corresponding scenario response or nil if do not match"
+  [req]
+  (let [replay            (:replay @app-state)
+        received-count    (count (:actual replay))
+        expected-req-resp (get-in replay [:expected (dec received-count)])]
+    (when (replay-req-match? req (:request expected-req-resp))
+      (req-body-encode (:response expected-req-resp)))))
 
-(t/deftest vec-rest-test
-  (t/are [v ex] (= (vec-rest v) ex)
-         (vec-rest [   ]) []
-         (vec-rest [1  ]) []
-         (vec-rest [1 2]) []))
+(defn- replay-set-last-request-ok! "Set the last-request ok in the state of the app"
+  [ok?] (swap! app-state assoc-in [:replay :last-ok?] ok?))
 
-(defn- replay-handle-req "Takes a request and update the state of the application with it, returns the matched response or nil"
-  [request]
-  (println "[replay-handle-req] processing ...")
-  (let [scenario (get-in @app-state [:replay :scenario :current])]
-    (swap! app-state assoc-in [:replay :last-request] request)
-    (if (replay-req-match-scenario? request scenario)
-      (do (println "[replay-handle-req] Request matched succefully" )
-          (let [resp (get-in @app-state [:replay :scenario :current 0 :response])]
-            (swap! app-state (fn [as] (update-in as [:replay :scenario :current] vec-rest)))
-            resp))
-      (do (println "[replay-handle-req] No match for incomming request!")
-          (println "    Expected:")
-          (pprint  (get-in scenario [0 :request]))
-          (println "    But was :")
-          (pprint  request)))))
+(defn- replay-handle-req "Takes a request and update the state of the application with it, returns the matched response or nil if none"
+  [req]
+  (replay-store-incoming-req! req)
+  (if-let [resp (replay-get-resp req)]
+    (do (replay-set-last-request-ok! true)
+        resp)
+    (do (replay-set-last-request-ok! false)
+        nil)))
 
 (defn- wrap-replay "A middleware that takes a confuration and replay it to its client"
   [handler conf]
   (fn [request]
-    (do (println "[wrap-replay] date=" (java.util.Date.))
-        (if-let [resp (replay-handle-req request)]
-       (do (println "[wrap-replay] response found")
-           resp)
-       (do (println "Nothing found for the given request")
-           (throw (RuntimeException. "Nothing found for the given request")))))))
+    (replay-handle-req request)))
+
+;; http server: main ==========================================================
+
+(defn- mode-get "Returns the mode of the app, currently :record or :replay"
+  [] (->> @app-state
+          :mode))
+
+(defn handler [request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (-> request
+                :body
+                slurp)})
 
 (def app
   (case (mode-get)
@@ -346,7 +385,7 @@
                 wrap-stringify-req-input-stream
                 )
     :replay (-> handler
-                (wrap-replay (replay-conf-get))
+                (wrap-replay (:conf @app-state))
                 wrap-stringify-req-input-stream)))
 
 (comment "local fake server via proxy
@@ -380,27 +419,40 @@
 
 ;; http server lifecycle ======================================================
 
+(declare server-stop)
+
+(defn- jetty-server-defined?
+  [] (resolve 'jetty-server))
+
 ;; Stop jetty-server, if it exists
-(declare stop)
-(if (resolve 'jetty-server) (stop))
+(if (jetty-server-defined?) (server-stop))
 
-(def jetty-server
-  (rj/run-jetty app {:port 3009
-                     :join? false}))
+(defn server-start   []
+  (if (jetty-server-defined?)
+    (.start (var-get (resolve 'jetty-server)))
+    (def jetty-server
+      (rj/run-jetty app {:port 3009
+                         :join? false}))))
 
-(defn start   [] (.start jetty-server))
-(defn stop    [] (.stop  jetty-server))
-(defn restart [] (stop) (start))
+(defn server-stop    [] (.stop  jetty-server))
+
+(defn server-restart [] (server-stop) (server-start))
 
 (comment "start / stop /restart the proxy"
-  (start)
-  (stop)
-  (restart))
+  (server-start)
+  (server-stop)
+  (server-restart))
 
 (comment "Query the proxy via curl"
          "In a shell run:"
 
-         (sh/sh "curl" "-s" "http://localhost:3009"))
+         (sh/sh "curl" "-s" "http://localhost:3009")
+         )
 
-(comment "Remove the cloxy ns"
-         (remove-ns 'cloxy.core))
+;; ns related stuff ===========================================================
+
+(comment "Remove the cloxy ns :" (remove-ns 'cloxy.core)
+         )
+(comment "Enable/disable trace:" (u/trace-toggle)
+         )
+
