@@ -444,6 +444,16 @@
   (server-stop)
   (server-restart))
 
+(comment "start/stop examples"
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-start)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-stop)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-start)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         )
+
 (comment "Query the proxy via curl"
          "In a shell run:"
          (sh/sh "curl" "-s" "http://localhost:3009"))
