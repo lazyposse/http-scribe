@@ -419,15 +419,16 @@
 
 ;; http server lifecycle ======================================================
 
-(declare server-stop)
+(declare server-stop
+         jetty-server)
 
 (defn- jetty-server-defined?
-  [] (resolve 'jetty-server))
+  [] (bound? #'jetty-server))
 
 ;; Stop jetty-server, if it exists
 (if (jetty-server-defined?) (server-stop))
 
-(defn server-start   []
+(defn server-start []
   (if (jetty-server-defined?)
     (.start (var-get (resolve 'jetty-server)))
     (def jetty-server
@@ -445,9 +446,7 @@
 
 (comment "Query the proxy via curl"
          "In a shell run:"
-
-         (sh/sh "curl" "-s" "http://localhost:3009")
-         )
+         (sh/sh "curl" "-s" "http://localhost:3009"))
 
 ;; ns related stuff ===========================================================
 
