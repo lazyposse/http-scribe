@@ -42,8 +42,17 @@
 
 ;; Examples ===================================================================
 
-(defn -main []
-  (println (str "(-loadScenario \"import-one-model.scenario\") => " (-loadScenario "import-one-model.scenario")))
-  (println (str "(-getScenarioErrors) => " (pprint (:errorMessage (-getScenarioErrors))))))
-
-
+(comment "start/stop examples"
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-startServer)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-loadScenario "import-one-model.scenario")
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-getScenarioErrors)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-getScenarioErrors)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         ;; TODO we should stop replying after the first fail
+         (-getScenarioErrors)
+         (-stopServer)
+         )
