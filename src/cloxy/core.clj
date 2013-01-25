@@ -428,12 +428,13 @@
 ;; Stop jetty-server, if it exists
 (if (jetty-server-defined?) (server-stop))
 
-(defn server-start []
-  (if (jetty-server-defined?)
-    (.start (var-get (resolve 'jetty-server)))
-    (def jetty-server
-      (rj/run-jetty app {:port 3009
-                         :join? false}))))
+(defn server-start
+  ([]     (server-start 3009))
+  ([port] (if (jetty-server-defined?)
+            (.start (var-get (resolve 'jetty-server)))
+            (def jetty-server
+              (rj/run-jetty app {:port  port
+                                 :join? false})))))
 
 (defn server-stop    [] (.stop  jetty-server))
 

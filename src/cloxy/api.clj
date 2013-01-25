@@ -23,6 +23,8 @@
 
 ;; Calls to httplica.core =====================================================
 
+
+;;TODO rm useeless functions
 (defn- load-scenario "Takes a named resource, and load the corresponding scenario. Ex (load-scenario \"myscenario.txt\")"
   [named-resource-str]
   (println "[load-scenario]" named-resource-str)
@@ -34,17 +36,16 @@
 
 ;; Java callable methods ======================================================
 
-(defn -loadScenario "Java callable method for load-scenario"
-  [named-resource-str] (load-scenario named-resource-str))
-
-(defn -getScenarioErrors "Java callable method for verify-scenario"
-  [] (scenario-errors))
+(defn -loadScenario      "Load a scenario"             [named-resource-str ] (load-scenario named-resource-str))
+(defn -getScenarioErrors "Returns the scenario status" [                   ] (scenario-errors))
+(defn -startServer       "Start the server"            [port               ] (core/server-start port))
+(defn -stopServer        "Stop the server"             [                   ] (core/server-stop))
 
 ;; Examples ===================================================================
 
 (comment "start/stop examples"
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
-         (-startServer)
+         (-startServer 3009)
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
          (-loadScenario "import-one-model.scenario")
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
