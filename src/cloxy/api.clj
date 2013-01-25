@@ -48,12 +48,17 @@
          (-startServer 3009)
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
          (-loadScenario "import-one-model.scenario")
-         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/") nil
          (-getScenarioErrors)
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
          (-getScenarioErrors)
          (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
-         ;; TODO we should stop replying after the first fail
          (-getScenarioErrors)
-         (-stopServer)
-         )
+         (-stopServer))
+
+;; ns related stuff ===========================================================
+
+(comment "Remove the cloxy ns :" (do
+                                   (remove-ns 'cloxy.api)
+                                   (remove-ns 'cloxy.core)))
+
