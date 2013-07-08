@@ -37,7 +37,7 @@
    :mode :replay
    :replay {:expected []
             :actual   []
-            :last-ok? false}})
+            :last-ok? true}})
 
 (def #^{:private true, :doc "Holds the state of the application"}
   app-state
@@ -58,7 +58,7 @@
     (swap! app-state (fn [appstate] (-> appstate
                                        (assoc-in [:replay :expected] scenario)
                                        (assoc-in [:replay :actual  ] [])
-                                       (assoc-in [:replay :last-ok?] false))))))
+                                       (assoc-in [:replay :last-ok?] true))))))
 
 (defn- lines "Takes objects, join it with linebreaks"
   [& l] (str/join \newline l))
@@ -350,14 +350,18 @@
 (defn- replay-set-last-request-ok! "Set the last-request ok in the state of the app"
   [ok?] (swap! app-state assoc-in [:replay :last-ok?] ok?))
 
+(defn- replay-last-request-ok? "Get the last-request ok in the state of the app"
+  [] (get-in @app-state [:replay :last-ok?]))
+
 (defn- replay-handle-req "Takes a request and update the state of the application with it, returns the matched response or nil if none"
   [req]
-  (replay-store-incoming-req! req)
-  (if-let [resp (replay-get-resp req)]
-    (do (replay-set-last-request-ok! true)
-        resp)
-    (do (replay-set-last-request-ok! false)
-        nil)))
+  (when (replay-last-request-ok?)
+    (replay-store-incoming-req! req)
+    (if-let [resp (replay-get-resp req)]
+      (do (replay-set-last-request-ok! true)
+          resp)
+      (do (replay-set-last-request-ok! false)
+          nil))))
 
 (defn- wrap-replay "A middleware that takes a confuration and replay it to its client"
   [handler conf]
@@ -428,12 +432,13 @@
 ;; Stop jetty-server, if it exists
 (if (jetty-server-defined?) (server-stop))
 
-(defn server-start []
-  (if (jetty-server-defined?)
-    (.start (var-get (resolve 'jetty-server)))
-    (def jetty-server
-      (rj/run-jetty app {:port 3009
-                         :join? false}))))
+(defn server-start
+  ([]     (server-start 3009))
+  ([port] (if (jetty-server-defined?)
+            (.start (var-get (resolve 'jetty-server)))
+            (def jetty-server
+              (rj/run-jetty app {:port  port
+                                 :join? false})))))
 
 (defn server-stop    [] (.stop  jetty-server))
 
@@ -443,6 +448,16 @@
   (server-start)
   (server-stop)
   (server-restart))
+
+(comment "start/stop examples"
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-start)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-stop)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (server-start)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         )
 
 (comment "Query the proxy via curl"
          "In a shell run:"

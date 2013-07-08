@@ -23,6 +23,8 @@
 
 ;; Calls to httplica.core =====================================================
 
+
+;;TODO rm useeless functions
 (defn- load-scenario "Takes a named resource, and load the corresponding scenario. Ex (load-scenario \"myscenario.txt\")"
   [named-resource-str]
   (println "[load-scenario]" named-resource-str)
@@ -34,16 +36,29 @@
 
 ;; Java callable methods ======================================================
 
-(defn -loadScenario "Java callable method for load-scenario"
-  [named-resource-str] (load-scenario named-resource-str))
-
-(defn -getScenarioErrors "Java callable method for verify-scenario"
-  [] (scenario-errors))
+(defn -loadScenario      "Load a scenario"             [named-resource-str ] (load-scenario named-resource-str))
+(defn -getScenarioErrors "Returns the scenario status" [                   ] (scenario-errors))
+(defn -startServer       "Start the server"            [port               ] (core/server-start port))
+(defn -stopServer        "Stop the server"             [                   ] (core/server-stop))
 
 ;; Examples ===================================================================
 
-(defn -main []
-  (println (str "(-loadScenario \"import-one-model.scenario\") => " (-loadScenario "import-one-model.scenario")))
-  (println (str "(-getScenarioErrors) => " (pprint (:errorMessage (-getScenarioErrors))))))
+(comment "start/stop examples"
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-startServer 3009)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-loadScenario "import-one-model.scenario")
+         (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/") nil
+         (-getScenarioErrors)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-getScenarioErrors)
+         (pprint (sh/sh "curl" "-v" "-s" "--user" "user:pass" "http://localhost:3009/clj/rulez/"))
+         (-getScenarioErrors)
+         (-stopServer))
 
+;; ns related stuff ===========================================================
+
+(comment "Remove the cloxy ns :" (do
+                                   (remove-ns 'cloxy.api)
+                                   (remove-ns 'cloxy.core)))
 
